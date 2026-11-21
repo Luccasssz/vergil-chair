@@ -6,5 +6,7 @@
   "key.vergil_chair.fall": "Fall from Chair",
   "subtitles.vergil_chair.slump_sigh": "Player sighs",
   "message.vergil_chair.occupied": "Someone is already sitting in this chair",
+  "message.vergil_chair.no_seat_room": "There is not enough space to sit safely",
+  "message.vergil_chair.no_dismount": "There is no safe spot to get off the chair",
   "message.vergil_chair.no_landing": "There is no clear space to fall beside the chair"
 }

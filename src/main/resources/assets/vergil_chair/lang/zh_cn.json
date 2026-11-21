@@ -6,5 +6,7 @@
   "key.vergil_chair.fall": "震惊跌倒",
   "subtitles.vergil_chair.slump_sigh": "玩家叹气",
   "message.vergil_chair.occupied": "这把椅子已经有人坐了",
+  "message.vergil_chair.no_seat_room": "椅子周围空间不足，无法安全坐下",
+  "message.vergil_chair.no_dismount": "这把椅子旁没有安全的下椅位置",
   "message.vergil_chair.no_landing": "椅子周围没有可以跌落的空间"
 }

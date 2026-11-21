@@ -12,6 +12,7 @@ import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityDimensions;
@@ -19,6 +20,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.vehicle.DismountHelper;
+import net.minecraft.world.level.BlockCollisions;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
@@ -35,8 +37,11 @@ public final class ChairSeat extends Entity {
     private static final double SLIDE_DISTANCE = 0.65;
     private static final double SIDE_LANDING_ADVANCE = 0.82;
     private static final double FALL_DISTANCE = 1.27;
+    private static final double MAX_EXIT_STEP = 0.6;
+    private static final double MAX_EXIT_DISTANCE_SQUARED = 4.0;
 
-    private Vec3 mountingPosition = Vec3.ZERO;
+    @Nullable
+    private Vec3 entryPosition;
 
     public ChairSeat(EntityType<? extends ChairSeat> type, Level level) {
         super(type, level);
@@ -56,11 +61,31 @@ public final class ChairSeat extends Entity {
         builder.define(FALL_FLOOR, 0.0F);
     }
 
-    public void place(BlockPos pos, Direction facing, Vec3 mountingPosition) {
+    public void place(BlockPos pos, Direction facing, Vec3 entryPosition) {
         Vec3 anchor = Vec3.atBottomCenterOf(pos);
         setPos(anchor.x, anchor.y, anchor.z);
         entityData.set(FACING, facing);
-        this.mountingPosition = mountingPosition;
+        this.entryPosition = entryPosition;
+    }
+
+    public boolean allowMount(ServerPlayer player) {
+        if (!clearExitSpace(player, standingBox(player, position()))) {
+            player.displayClientMessage(Component.translatable("message.vergil_chair.no_seat_room"), true);
+            return false;
+        }
+        return checkExit(player, position());
+    }
+
+    public boolean allowDismount(ServerPlayer player) {
+        return checkExit(player, player.position());
+    }
+
+    private boolean checkExit(ServerPlayer player, Vec3 from) {
+        if (findDismount(player, from) != null) {
+            return true;
+        }
+        player.displayClientMessage(Component.translatable("message.vergil_chair.no_dismount"), true);
+        return false;
     }
 
     public Direction facing() {
@@ -115,7 +140,7 @@ public final class ChairSeat extends Entity {
         for (Direction exit : exits) {
             Vec3 target = fallTarget(exit, getY());
             Vec3 floor = safeStand(player, BlockPos.containing(target));
-            if (floor == null || Math.abs(floor.y - getY()) > 0.6) {
+            if (floor == null || Math.abs(floor.y - getY()) > MAX_EXIT_STEP) {
                 continue;
             }
             target = new Vec3(target.x, floor.y, target.z);
@@ -177,7 +202,12 @@ public final class ChairSeat extends Entity {
             Vec3 target = fallTarget(exit, getY() + entityData.get(FALL_FLOOR));
             if (elapsed >= ChairMotion.FALL_TICKS || !clearLanding(player, exit, target)
                     || elapsed < ChairMotion.IMPACT_TICK && !clearApproach(player, exit, target)) {
-                release(player);
+                if (findDismount(player, player.position()) == null
+                        && clearExitPath(player, player.position(), position())) {
+                    begin(ChairMotion.Action.SIT);
+                } else {
+                    release(player);
+                }
             } else if (elapsed == ChairMotion.IMPACT_TICK) {
                 level().playSound(null, target.x, target.y, target.z, SoundEvents.PLAYER_SMALL_FALL,
                         SoundSource.PLAYERS, 0.5F, 0.95F);
@@ -194,26 +224,87 @@ public final class ChairSeat extends Entity {
 
     @Override
     public Vec3 getDismountLocationForPassenger(LivingEntity rider) {
+        Vec3 from = rider.position();
+        if (level().isClientSide) {
+            return from;
+        }
+        Vec3 exit = findDismount(rider, from);
+        return exit == null ? from : exit;
+    }
+
+    @Nullable
+    private Vec3 findDismount(LivingEntity rider, Vec3 from) {
         if (action().falling() && time(1.0F) >= ChairMotion.IMPACT_TICK) {
             Direction exit = entityData.get(FALL_DIRECTION);
             Vec3 target = fallTarget(exit, getY() + entityData.get(FALL_FLOOR));
-            if (clearLanding(rider, exit, target)) {
+            if (clearLanding(rider, exit, target) && validExit(rider, from, target)) {
                 return target;
+            }
+        }
+
+        Vec3 floor = safeStand(rider, BlockPos.containing(from.x, getY(), from.z));
+        if (floor != null) {
+            Vec3 below = new Vec3(from.x, floor.y, from.z);
+            if (validExit(rider, from, below)) {
+                return below;
             }
         }
         Direction[] order = { facing(), facing().getClockWise(), facing().getCounterClockWise(), facing().getOpposite() };
         for (Direction direction : order) {
             Vec3 exit = safeStand(rider, blockPosition().relative(direction));
-            if (exit != null) {
+            if (exit != null && validExit(rider, from, exit)) {
                 return exit;
             }
         }
-        Vec3 above = safeStand(rider, blockPosition().above());
-        if (above != null) {
-            return above;
+        return entryPosition != null && validExit(rider, from, entryPosition) ? entryPosition : null;
+    }
+
+    private boolean validExit(LivingEntity rider, Vec3 from, Vec3 exit) {
+        if (exit.subtract(position()).horizontalDistanceSqr() > MAX_EXIT_DISTANCE_SQUARED
+                || Math.abs(exit.y - from.y) > MAX_EXIT_STEP
+                || !clearExitPath(rider, from, exit)) {
+            return false;
         }
-        return level().noCollision(rider, standingBox(rider, mountingPosition))
-                ? mountingPosition : super.getDismountLocationForPassenger(rider);
+        AABB room = standingBox(rider, exit);
+        BlockPos feet = BlockPos.containing(exit);
+        BlockPos surface = BlockPos.containing(exit.x, exit.y - 0.01, exit.z);
+        AABB support = new AABB(room.minX, exit.y - 0.01, room.minZ, room.maxX, exit.y, room.maxZ);
+        return level().noCollision(rider, room)
+                && !rider.getType().isBlockDangerous(level().getBlockState(feet))
+                && !rider.getType().isBlockDangerous(level().getBlockState(surface))
+                && !level().getBlockState(feet).is(BlockTags.INVALID_SPAWN_INSIDE)
+                && !level().getBlockState(feet.above()).is(BlockTags.INVALID_SPAWN_INSIDE)
+                && level().getBlockCollisions(rider, support).iterator().hasNext();
+    }
+
+    private boolean clearExitPath(LivingEntity rider, Vec3 from, Vec3 to) {
+        AABB start = standingBox(rider, from);
+        AABB end = standingBox(rider, to);
+        AABB lower = from.y <= to.y ? start : end;
+        AABB higher = from.y <= to.y ? end : start;
+        double step = Math.abs(from.y - to.y);
+        AABB raised = lower.move(0, step, 0);
+        return clearExitSpace(rider, raised.minmax(higher))
+                && (step == 0 || clearExitSpace(rider, lower.minmax(raised)));
+    }
+
+    private boolean clearExitSpace(LivingEntity rider, AABB room) {
+        BlockPos min = BlockPos.containing(room.minX, room.minY, room.minZ);
+        BlockPos max = BlockPos.containing(room.maxX, room.maxY, room.maxZ);
+        if (!level().hasChunksAt(min, max) || !level().getWorldBorder().isWithinBounds(room)) {
+            return false;
+        }
+        BlockPos base = blockPosition();
+        BlockPos top = base.above();
+        // The rider starts inside the chair's shape. Ignore only this chair along the path.
+        BlockCollisions<Boolean> blocks = new BlockCollisions<>(level(), rider, room, false,
+                (pos, shape) -> (pos.equals(base) || pos.equals(top)) && level().getBlockState(pos).is(VergilChair.CHAIR.get()));
+        while (blocks.hasNext()) {
+            if (!blocks.next()) {
+                return false;
+            }
+        }
+        return level().getEntityCollisions(rider, room).isEmpty();
     }
 
     @Nullable

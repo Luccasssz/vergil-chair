@@ -121,6 +121,9 @@ public final class ChairBlock extends DoublePlantBlock {
             }
             ChairSeat seat = new ChairSeat(VergilChair.SEAT.get(), level);
             seat.place(basePos, base.getValue(FACING), serverPlayer.position());
+            if (!seat.allowMount(serverPlayer)) {
+                return InteractionResult.CONSUME;
+            }
             if (level.addFreshEntity(seat)) {
                 if (serverPlayer.startRiding(seat, true)) {
                     seat.positionRider(serverPlayer);

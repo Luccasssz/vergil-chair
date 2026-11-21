@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'dev.vergilchair'
-version = '1.0.4'
+version = '1.0.5'
 base.archivesName = 'vergil-chair-neoforge-1.21.1'
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
