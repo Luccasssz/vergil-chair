@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [{ "type": "minecraft:item", "name": "vergil_chair:vergil_chair" }],
+      "conditions": [
+        {
+          "condition": "minecraft:block_state_property",
+          "block": "vergil_chair:vergil_chair",
+          "properties": { "half": "lower" }
+        },
+        { "condition": "minecraft:survives_explosion" }
+      ]
+    }
+  ]
+}

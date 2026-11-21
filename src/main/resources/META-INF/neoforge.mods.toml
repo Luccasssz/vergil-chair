@@ -1,0 +1,26 @@
+modLoader = "javafml"
+loaderVersion = "[4,)"
+license = "All Rights Reserved"
+
+[[mods]]
+modId = "vergil_chair"
+version = "${modVersion}"
+displayName = "Vergil's Chair"
+description = '''A white plastic chair with seated surprise and fall animations.'''
+
+[[mixins]]
+config = "vergil_chair.mixins.json"
+
+[[dependencies.vergil_chair]]
+modId = "neoforge"
+type = "required"
+versionRange = "[21.1.1,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.vergil_chair]]
+modId = "minecraft"
+type = "required"
+versionRange = "[1.21.1]"
+ordering = "NONE"
+side = "BOTH"

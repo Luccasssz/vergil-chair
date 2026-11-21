@@ -1,0 +1,10 @@
+{
+  "block.vergil_chair.vergil_chair": "维吉尔的椅子",
+  "itemGroup.vergil_chair": "维吉尔的椅子",
+  "key.categories.vergil_chair": "维吉尔的椅子",
+  "key.vergil_chair.slump": "震惊瘫坐／坐直",
+  "key.vergil_chair.fall": "震惊跌倒",
+  "subtitles.vergil_chair.slump_sigh": "玩家叹气",
+  "message.vergil_chair.occupied": "这把椅子已经有人坐了",
+  "message.vergil_chair.no_landing": "椅子周围没有可以跌落的空间"
+}

@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "pattern": ["X  ", "XXX", "X X"],
+  "key": { "X": { "item": "minecraft:white_concrete" } },
+  "result": { "id": "vergil_chair:vergil_chair", "count": 1 }
+}

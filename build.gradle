@@ -1,0 +1,36 @@
+plugins {
+    id 'java'
+    id 'net.neoforged.gradle.userdev' version '7.1.27'
+}
+
+group = 'dev.vergilchair'
+version = '1.0.4'
+base.archivesName = 'vergil-chair-neoforge-1.21.1'
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+dependencies {
+    implementation "net.neoforged:neoforge:${neo_version}"
+}
+
+runs {
+    configureEach {
+        workingDirectory project.layout.projectDirectory.dir('run').dir(name)
+        modSource sourceSets.main
+    }
+    client {}
+    server {
+        argument '--nogui'
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.named('processResources') {
+    inputs.property('modVersion', project.version)
+    filesMatching('META-INF/neoforge.mods.toml') {
+        expand modVersion: project.version
+    }
+}

@@ -1,0 +1,11 @@
+{
+  "loader": "neoforge:obj",
+  "model": "vergil_chair:models/block/vergil_chair_lower.obj",
+  "automatic_culling": false,
+  "shade_quads": false,
+  "flip_v": true,
+  "ambientocclusion": false,
+  "textures": {
+    "particle": "vergil_chair:block/warm_chalk"
+  }
+}

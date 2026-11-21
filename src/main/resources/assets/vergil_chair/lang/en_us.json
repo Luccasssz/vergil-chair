@@ -1,0 +1,10 @@
+{
+  "block.vergil_chair.vergil_chair": "Vergil's Chair",
+  "itemGroup.vergil_chair": "Vergil's Chair",
+  "key.categories.vergil_chair": "Vergil's Chair",
+  "key.vergil_chair.slump": "Shock Slump / Sit Up",
+  "key.vergil_chair.fall": "Fall from Chair",
+  "subtitles.vergil_chair.slump_sigh": "Player sighs",
+  "message.vergil_chair.occupied": "Someone is already sitting in this chair",
+  "message.vergil_chair.no_landing": "There is no clear space to fall beside the chair"
+}

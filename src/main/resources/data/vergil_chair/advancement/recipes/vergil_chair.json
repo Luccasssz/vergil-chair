@@ -1,0 +1,11 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_white_concrete": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": { "items": [{ "items": "minecraft:white_concrete" }] }
+    }
+  },
+  "requirements": [["has_white_concrete"]],
+  "rewards": { "recipes": ["vergil_chair:vergil_chair"] }
+}
